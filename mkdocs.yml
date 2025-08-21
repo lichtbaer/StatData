@@ -1,8 +1,8 @@
 site_name: SocData
 site_description: Unified access to social science datasets
-site_url: 
-repo_url: 
-repo_name: 
+# Set these to show repo links in the header
+# repo_url: https://github.com/OWNER/REPO
+# repo_name: OWNER/REPO
 
 theme:
   name: material
