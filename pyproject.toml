@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "socdata"
+version = "0.1.0"
+description = "Einheitlicher Zugriff auf sozialwissenschaftliche Datensätze (Eurostat, WVS, ESS, ...)."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "SocData Authors" }]
+license = { text = "MIT" }
+dependencies = [
+  "pandas>=2.1",
+  "pyarrow>=15",
+  "pyreadstat>=1.2",
+  "typer[all]>=0.12.3",
+  "pydantic>=2.7",
+  "requests>=2.31",
+  "backoff>=2.2",
+  "tqdm>=4.66",
+  "rich>=13.7",
+]
+
+[project.optional-dependencies]
+eurostat = [
+  "eurostat>=1.0.4",
+]
+dev = [
+  "pytest>=8.2",
+  "ruff>=0.5",
+  "mypy>=1.10",
+]
+
+[project.scripts]
+socdata = "socdata.cli:app"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["socdata*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
