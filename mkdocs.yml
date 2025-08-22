@@ -1,0 +1,32 @@
+site_name: SocData
+site_description: Unified access to social science datasets
+# Set these to show repo links in the header
+# repo_url: https://github.com/OWNER/REPO
+# repo_name: OWNER/REPO
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.instant
+    - navigation.sections
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  - tables
+  - pymdownx.superfences
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.tabbed
+
+nav:
+  - Home: index.md
+  - Getting started: getting-started.md
+  - CLI: cli.md
+  - Adapters: adapters.md
+  - Architecture: architecture.md
+  - Configuration: configuration.md
+  - Roadmap: roadmap.md
