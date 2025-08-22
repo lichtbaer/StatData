@@ -95,10 +95,35 @@ class ManualAdapter(BaseAdapter):
 			variable_labels=meta.get("variable_labels", {}),
 			value_labels=meta.get("value_labels", {}),
 		)
-		(cache_dir / "meta").mkdir(parents=True, exist_ok=True)
-		(cache_dir / "processed").mkdir(parents=True, exist_ok=True)
-		(cache_dir / "meta" / "ingestion_manifest.json").write_text(manifest.to_json(), encoding="utf-8")
-		# Optionally, save normalized parquet
-		# df.to_parquet(cache_dir / "processed" / "data.parquet")
+		meta_dir = cache_dir / "meta"
+		proc_dir = cache_dir / "processed"
+		meta_dir.mkdir(parents=True, exist_ok=True)
+		proc_dir.mkdir(parents=True, exist_ok=True)
+		manifest_path = meta_dir / "ingestion_manifest.json"
+		manifest_path.write_text(manifest.to_json(), encoding="utf-8")
+
+		# Save normalized parquet with Arrow metadata
+		try:
+			import json as _json
+			import pyarrow as pa
+			import pyarrow.parquet as pq
+			table = pa.Table.from_pandas(df, preserve_index=False)
+			meta_bytes = table.schema.metadata or {}
+			aug = {
+				b"socdata.dataset_id": dsid.encode("utf-8"),
+				b"socdata.source": source.encode("utf-8"),
+				b"socdata.adapter": b"manual",
+				b"socdata.manifest_path": str(manifest_path).encode("utf-8"),
+				b"socdata.variable_labels": _json.dumps(manifest.variable_labels).encode("utf-8"),
+				b"socdata.value_labels": _json.dumps(manifest.value_labels).encode("utf-8"),
+			}
+			new_schema = table.schema.with_metadata({**meta_bytes, **aug})
+			table = table.replace_schema_metadata(new_schema.metadata)
+			out_path = proc_dir / "data.parquet"
+			pq.write_table(table, out_path)
+		except Exception:
+			# Best-effort; ignore metadata write failures
+			pass
+
 		return df
 

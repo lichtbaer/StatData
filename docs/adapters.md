@@ -38,6 +38,10 @@ socdata ingest-cmd manual:wvs ~/Downloads/WVS_Cross-National_Wave7.zip --export 
 socdata ingest-cmd manual:wvs ~/path/to/WVS_Extract.dta --export wvs.parquet
 ```
 
+Artifacts written to cache:
+- Normalized Parquet with Arrow metadata (variable/value labels, provenance): `~/.socdata/manual/manual_wvs/latest/processed/data.parquet`
+- Manifest JSON: `~/.socdata/manual/manual_wvs/latest/meta/ingestion_manifest.json`
+
 Planned adapters/recipes:
 - SOEP (ODF) – direct loading from ODF zip via dedicated package
 - GSS – scripted automation
