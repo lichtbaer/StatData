@@ -2,13 +2,15 @@ from __future__ import annotations
 
 from pathlib import Path
 import zipfile
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 import pandas as pd
 
 from .base import BaseAdapter
-from ..core.parsers import read_table
+from ..core.parsers import read_table, read_table_with_meta
 from ..core.types import DatasetSummary
+from ..core.models import IngestionManifest
+from ..core.storage import get_dataset_dir
 
 
 class ManualAdapter(BaseAdapter):
@@ -22,6 +24,35 @@ class ManualAdapter(BaseAdapter):
 			"Manual adapter requires ingest() with a local file path; use CLI ingest_cmd"
 		)
 
+	def _select_target_from_zip(self, zip_path: Path) -> Path:
+		# Extract zip to a sibling directory next to the zip
+		extract_dir = zip_path.with_suffix("")
+		extract_dir.mkdir(parents=True, exist_ok=True)
+		with zipfile.ZipFile(zip_path, "r") as zf:
+			zf.extractall(extract_dir)
+		# Pick a candidate data file
+		candidates: List[Tuple[int, Path]] = []
+		for p in extract_dir.rglob("*"):
+			if p.is_file() and p.suffix.lower() in {".dta", ".sav", ".zsav", ".csv", ".tsv"}:
+				candidates.append((p.stat().st_size, p))
+		if not candidates:
+			raise ValueError("No supported data files (.dta/.sav/.zsav/.csv/.tsv) found in extracted zip")
+		# Prefer Stata/SPSS formats, then largest
+		def rank(p: Path) -> int:
+			if p.suffix.lower() in {".dta", ".sav", ".zsav"}:
+				return 0
+			return 1
+		candidates.sort(key=lambda t: (rank(t[1]), -t[0]))
+		return candidates[0][1]
+
+	def _normalize(self, df: pd.DataFrame) -> pd.DataFrame:
+		# lowercase columns and strip whitespace in object columns
+		df = df.copy()
+		df.columns = [str(c).strip().lower() for c in df.columns]
+		for col in df.select_dtypes(include=["object"]).columns:
+			df[col] = df[col].astype(str).str.strip()
+		return df
+
 	def ingest(self, dataset_id: str | None, *, file_path: str) -> pd.DataFrame:
 		path = Path(file_path)
 		if not path.exists():
@@ -32,30 +63,42 @@ class ManualAdapter(BaseAdapter):
 			ds = dataset_id.split(":", 1)[1] if ":" in dataset_id else dataset_id
 			recipe = ds.lower()
 
+		# Choose target file
 		if path.suffix.lower() == ".zip":
-			# Extract zip to a sibling directory next to the zip
-			extract_dir = path.with_suffix("")
-			extract_dir.mkdir(parents=True, exist_ok=True)
-			with zipfile.ZipFile(path, "r") as zf:
-				zf.extractall(extract_dir)
-			# Pick a candidate data file
-			candidates = []
-			for p in extract_dir.rglob("*"):
-				if p.is_file() and p.suffix.lower() in {".dta", ".sav", ".zsav", ".csv", ".tsv"}:
-					candidates.append((p.stat().st_size, p))
-			if not candidates:
-				raise ValueError("No supported data files (.dta/.sav/.zsav/.csv/.tsv) found in extracted zip")
-			# Prefer Stata/SPSS formats, then largest
-			def rank(p: Path) -> int:
-				if p.suffix.lower() in {".dta", ".sav", ".zsav"}:
-					return 0
-				return 1
-			candidates.sort(key=lambda t: (rank(t[1]), -t[0]))
-			target = candidates[0][1]
-			df = read_table(target)
-			return df
+			target = self._select_target_from_zip(path)
+		else:
+			target = path
 
-		# Single file path provided
-		df = read_table(path)
+		# Read with metadata when possible
+		try:
+			df, meta = read_table_with_meta(target)
+		except Exception:
+			df = read_table(target)
+			meta = {"variable_labels": {}, "value_labels": {}}
+
+		# Normalize
+		df = self._normalize(df)
+
+		# Write manifest to cache
+		source = "manual"
+		dsid = dataset_id or "manual:wvs"
+		cache_dir = get_dataset_dir(source, dsid.replace(":", "_"), version="latest")
+		manifest = IngestionManifest(
+			timestamp=pd.Timestamp.utcnow().to_pydatetime(),
+			adapter="manual",
+			parameters={"file_path": str(path), "target": str(target), "recipe": str(recipe)},
+			source_hashes={},
+			transforms=["lowercase_columns", "strip_object_columns"],
+			dataset_id=dsid,
+			source=source,
+			license=None,
+			variable_labels=meta.get("variable_labels", {}),
+			value_labels=meta.get("value_labels", {}),
+		)
+		(cache_dir / "meta").mkdir(parents=True, exist_ok=True)
+		(cache_dir / "processed").mkdir(parents=True, exist_ok=True)
+		(cache_dir / "meta" / "ingestion_manifest.json").write_text(manifest.to_json(), encoding="utf-8")
+		# Optionally, save normalized parquet
+		# df.to_parquet(cache_dir / "processed" / "data.parquet")
 		return df
 

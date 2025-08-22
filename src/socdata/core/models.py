@@ -38,4 +38,12 @@ class IngestionManifest(BaseModel):
     parameters: Dict[str, str]
     source_hashes: Dict[str, str] = Field(default_factory=dict)
     transforms: List[str] = Field(default_factory=list)
+    dataset_id: Optional[str] = None
+    source: Optional[str] = None
+    license: Optional[str] = None
+    variable_labels: Dict[str, str] = Field(default_factory=dict)
+    value_labels: Dict[str, Dict[str, str]] = Field(default_factory=dict)
+
+    def to_json(self) -> str:
+        return self.model_dump_json(indent=2, by_alias=True)
 
