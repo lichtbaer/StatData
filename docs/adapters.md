@@ -31,8 +31,11 @@ Notes:
 Usage:
 
 ```bash
-# After downloading and extracting the archive, pass the main data file
-socdata ingest-cmd manual ~/path/to/WVS_Extract.dta --export wvs.parquet
+# Either pass the downloaded ZIP directly (auto-extracts and picks the main file)
+socdata ingest-cmd manual:wvs ~/Downloads/WVS_Cross-National_Wave7.zip --export wvs.parquet
+
+# Or pass an extracted data file directly
+socdata ingest-cmd manual:wvs ~/path/to/WVS_Extract.dta --export wvs.parquet
 ```
 
 Planned adapters/recipes:

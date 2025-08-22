@@ -17,6 +17,6 @@ class BaseAdapter(ABC):
     def load(self, dataset_id: str, *, filters: Dict[str, Any]) -> pd.DataFrame:
         raise NotImplementedError
 
-    def ingest(self, *, file_path: str) -> pd.DataFrame:  # optional for manual adapters
+    def ingest(self, dataset_id: str | None, *, file_path: str) -> pd.DataFrame:  # optional for manual adapters
         raise NotImplementedError
 
