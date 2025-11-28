@@ -18,4 +18,5 @@ Unified, simple access to heterogeneous social science datasets.
 - Adapters
 - Architecture
 - Configuration
+- Search Index
 - Roadmap

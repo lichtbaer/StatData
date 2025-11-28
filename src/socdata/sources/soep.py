@@ -223,4 +223,12 @@ class SOEPAdapter(BaseAdapter):
             # Best-effort; ignore metadata write failures
             pass
         
+        # Index the dataset
+        try:
+            from ..core.registry import index_dataset_from_manifest
+            index_dataset_from_manifest(f"soep:{dataset_name}", str(manifest_path))
+        except Exception:
+            # Silently fail if indexing fails
+            pass
+        
         return df

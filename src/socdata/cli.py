@@ -43,8 +43,26 @@ def list(source: Optional[str] = None) -> None:  # noqa: A001 - shadow builtins 
 
 
 @app.command()
-def search(query: str) -> None:
-	results = search_datasets(query)
+def search(
+	query: str,
+	source: Optional[str] = None,
+	variable: Optional[str] = None,
+	no_index: bool = False,
+) -> None:
+	"""
+	Search datasets using full-text search.
+	
+	Examples:
+		socdata search "unemployment"
+		socdata search "income" --source gss
+		socdata search "age" --variable age
+	"""
+	if variable:
+		from .core.registry import search_datasets_advanced
+		results = search_datasets_advanced(query=query, source=source, variable_name=variable)
+	else:
+		results = search_datasets(query, source=source, use_index=not no_index)
+	
 	table = Table(show_header=True, header_style="bold magenta")
 	table.add_column("ID")
 	table.add_column("Source")
@@ -52,6 +70,52 @@ def search(query: str) -> None:
 	for ds in results:
 		table.add_row(ds.id, ds.source, ds.title)
 	console.print(table)
+	if not results:
+		console.print("[yellow]No datasets found[/yellow]")
+
+
+@app.command()
+def info(dataset: str) -> None:
+	"""Show detailed information about a dataset."""
+	from .core.search_index import get_index
+	
+	try:
+		index = get_index()
+		info = index.get_dataset_info(dataset)
+		if info:
+			console.print(f"[bold]Dataset:[/bold] {info['id']}")
+			console.print(f"[bold]Source:[/bold] {info['source']}")
+			console.print(f"[bold]Title:[/bold] {info['title']}")
+			if info.get("description"):
+				console.print(f"[bold]Description:[/bold] {info['description']}")
+			if info.get("license"):
+				console.print(f"[bold]License:[/bold] {info['license']}")
+			if info.get("variable_labels"):
+				console.print(f"\n[bold]Variables:[/bold] {len(info['variable_labels'])}")
+				# Show first 10 variables
+				for var_name, label in list(info['variable_labels'].items())[:10]:
+					console.print(f"  - {var_name}: {label}")
+				if len(info['variable_labels']) > 10:
+					console.print(f"  ... and {len(info['variable_labels']) - 10} more")
+		else:
+			console.print(f"[red]Dataset '{dataset}' not found in index[/red]")
+			console.print("[yellow]Try rebuilding the index with: socdata rebuild-index[/yellow]")
+	except Exception as e:
+		console.print(f"[red]Error: {e}[/red]")
+
+
+@app.command()
+def rebuild_index() -> None:
+	"""Rebuild the search index from all available datasets."""
+	from .core.search_index import get_index
+	
+	console.print("[yellow]Rebuilding search index...[/yellow]")
+	try:
+		index = get_index()
+		index.rebuild_index()
+		console.print("[green]Search index rebuilt successfully[/green]")
+	except Exception as e:
+		console.print(f"[red]Error rebuilding index: {e}[/red]")
 
 
 @app.command()
