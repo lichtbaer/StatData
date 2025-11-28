@@ -5,12 +5,16 @@ from typing import Dict, List
 from ..sources.base import BaseAdapter
 from ..sources.eurostat import EurostatAdapter
 from ..sources.manual import ManualAdapter
+from ..sources.soep import SOEPAdapter
+from ..sources.gss import GSSAdapter
 from .types import DatasetSummary
 
 
 _ADAPTERS: Dict[str, BaseAdapter] = {
     "eurostat": EurostatAdapter(),
     "manual": ManualAdapter(),
+    "soep": SOEPAdapter(),
+    "gss": GSSAdapter(),
 }
 
 
