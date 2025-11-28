@@ -8,10 +8,10 @@
 - Basic tests and docs
 
 ## Phase 2
-- SOEP ODF adapter
-- GSS scripted ingestion
+- ~~SOEP ODF adapter~~ ✓
+- ~~GSS scripted ingestion~~ ✓
+- ~~Local search index over metadata~~ ✓
 - Optional REST API (FastAPI)
-- Local search index over metadata
 
 ## Phase 3
 - Recipes for ESS, ICPSR, ISSP, CSES, EVS

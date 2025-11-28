@@ -42,7 +42,69 @@ Artifacts written to cache:
 - Normalized Parquet with Arrow metadata (variable/value labels, provenance): `~/.socdata/manual/manual_wvs/latest/processed/data.parquet`
 - Manifest JSON: `~/.socdata/manual/manual_wvs/latest/meta/ingestion_manifest.json`
 
+## SOEP (ODF)
+
+- Source: SOEP (Socio-Economic Panel) Open Data Format
+- Status: implemented (ingest from ODF ZIP files)
+
+SOEP ODF files are ZIP archives containing data files and documentation. The adapter automatically extracts and processes the main data file.
+
+Usage:
+
+```bash
+# Ingest from local ODF ZIP file
+socdata ingest-cmd soep:soep-core ~/Downloads/soep_core.zip --export soep.parquet
+```
+
+Python:
+
+```python
+import socdata as sd
+
+# Ingest from local file
+df = sd.ingest("soep:soep-core", file_path="~/Downloads/soep_core.zip")
+
+# Load from cache (after ingestion)
+df = sd.load("soep:soep-core")
+```
+
+Notes:
+- SOEP data requires registration and data use agreement
+- ODF ZIP files are automatically extracted
+- The adapter prefers Stata/SPSS formats over CSV when multiple files are present
+- Original ZIP is cached in `raw/` directory
+
+## GSS (scripted)
+
+- Source: General Social Survey (NORC at University of Chicago)
+- Status: implemented (ingest from local files)
+
+GSS data is available after registration. This adapter supports ingestion from downloaded GSS data files.
+
+Usage:
+
+```bash
+# Ingest from local GSS data file
+socdata ingest-cmd gss:gss-2022 ~/Downloads/GSS2022.dta --export gss.parquet
+```
+
+Python:
+
+```python
+import socdata as sd
+
+# Ingest from local file
+df = sd.ingest("gss:gss-2022", file_path="~/Downloads/GSS2022.dta")
+
+# Load from cache with filters
+df = sd.load("gss:gss-cumulative", filters={"year": 2022})
+```
+
+Notes:
+- GSS data requires registration at https://gss.norc.org
+- Supports Stata (.dta), SPSS (.sav), and CSV formats
+- Version detection from filename (e.g., GSS2022.dta → gss-2022)
+- Filters can be applied when loading from cache
+
 Planned adapters/recipes:
-- SOEP (ODF) – direct loading from ODF zip via dedicated package
-- GSS – scripted automation
 - ESS, ICPSR, ISSP, CSES, EVS – manual ingest with per-study recipes
