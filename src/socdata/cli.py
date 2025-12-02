@@ -158,3 +158,26 @@ def ingest_cmd(dataset: str, file_path: Path, export: Optional[Path] = None) -> 
 			df.to_csv(export, index=False)
 		console.print(f"Exported to {export}")
 
+
+@app.command()
+def serve(
+	host: str = "127.0.0.1",
+	port: int = 8000,
+	reload: bool = False,
+) -> None:
+	"""Start the REST API server."""
+	try:
+		import uvicorn
+	except ImportError:
+		console.print(
+			"[red]FastAPI and uvicorn not installed. "
+			"Install with: pip install socdata[api][/red]"
+		)
+		raise typer.Exit(1)
+	
+	console.print(f"[green]Starting SocData API server on http://{host}:{port}[/green]")
+	console.print(f"[yellow]API documentation: http://{host}:{port}/docs[/yellow]")
+	
+	from .server import app
+	uvicorn.run(app, host=host, port=port, reload=reload)
+

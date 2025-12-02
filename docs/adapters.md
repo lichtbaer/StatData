@@ -22,6 +22,7 @@ socdata load-cmd eurostat:une_rt_m --filters 'geo=DE'
 
 Notes:
 - Certain dimension combinations are invalid. Start with a minimal filter (e.g., `geo`).
+- Expanded dataset list includes 10 common Eurostat datasets (unemployment, GDP, population, education, health, crime, migration, etc.)
 
 ## Manual (recipes)
 
@@ -106,5 +107,110 @@ Notes:
 - Version detection from filename (e.g., GSS2022.dta → gss-2022)
 - Filters can be applied when loading from cache
 
-Planned adapters/recipes:
-- ESS, ICPSR, ISSP, CSES, EVS – manual ingest with per-study recipes
+## ESS (European Social Survey)
+
+- Source: European Social Survey (https://www.europeansocialsurvey.org/)
+- Status: implemented (ingest from local files)
+
+ESS data is available after registration. This adapter supports ingestion from downloaded ESS data files (SPSS, Stata, or CSV formats).
+
+Usage:
+
+```bash
+# Ingest from local ESS data file
+socdata ingest-cmd ess:ess-round-10 ~/Downloads/ESS10e01_1.sav --export ess10.parquet
+
+# Or from ZIP archive
+socdata ingest-cmd ess:ess-round-10 ~/Downloads/ESS10.zip --export ess10.parquet
+```
+
+Python:
+
+```python
+import socdata as sd
+
+# Ingest from local file
+df = sd.ingest("ess:ess-round-10", file_path="~/Downloads/ESS10e01_1.sav")
+
+# Load from cache with filters
+df = sd.load("ess:ess-round-10", filters={"cntry": "DE"})
+```
+
+Notes:
+- ESS data requires registration at https://www.europeansocialsurvey.org/
+- Supports Stata (.dta), SPSS (.sav), and CSV formats
+- Auto-detects round from filename (e.g., ESS10e01_1.sav → ess-round-10)
+- Supports all ESS rounds (1-10) and cumulative file
+- Filters can be applied when loading from cache
+
+## ICPSR
+
+- Source: Inter-university Consortium for Political and Social Research
+- Status: implemented (ingest from local files)
+
+ICPSR data is available after registration. This adapter supports ingestion from downloaded ICPSR data files.
+
+Usage:
+
+```bash
+socdata ingest-cmd icpsr:icpsr-general ~/Downloads/ICPSR_12345.zip --export icpsr.parquet
+```
+
+Notes:
+- ICPSR data requires registration at https://www.icpsr.umich.edu/
+- Auto-detects study number from filename (e.g., ICPSR_12345.zip → icpsr-12345)
+- Supports ANES and WVS datasets from ICPSR
+
+## ISSP
+
+- Source: International Social Survey Programme
+- Status: implemented (ingest from local files)
+
+ISSP data is available after registration. This adapter supports all ISSP waves from 1985 to 2020.
+
+Usage:
+
+```bash
+socdata ingest-cmd issp:issp-2019 ~/Downloads/ISSP2019.sav --export issp.parquet
+```
+
+Notes:
+- ISSP data requires registration at https://www.issp.org/
+- Auto-detects year from filename
+- Supports all ISSP waves (1985-2020)
+
+## CSES
+
+- Source: Comparative Study of Electoral Systems
+- Status: implemented (ingest from local files)
+
+CSES data is available after registration. This adapter supports all CSES modules.
+
+Usage:
+
+```bash
+socdata ingest-cmd cses:cses-module-5 ~/Downloads/CSES_Module5.sav --export cses.parquet
+```
+
+Notes:
+- CSES data requires registration at https://cses.org/
+- Auto-detects module from filename
+- Supports modules 1-5 and integrated dataset
+
+## EVS
+
+- Source: European Values Study
+- Status: implemented (ingest from local files)
+
+EVS data is available after registration. This adapter supports all EVS waves.
+
+Usage:
+
+```bash
+socdata ingest-cmd evs:evs-2017 ~/Downloads/EVS_2017.sav --export evs.parquet
+```
+
+Notes:
+- EVS data requires registration at https://europeanvaluesstudy.eu/
+- Auto-detects wave from filename
+- Supports waves 1981, 1990, 1999, 2008, 2017 and integrated dataset

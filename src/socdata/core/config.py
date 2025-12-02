@@ -12,6 +12,9 @@ class SocDataConfig(BaseModel):
     timeout_seconds: int = 60
     max_retries: int = 3
     user_agent: str = "socdata/0.1"
+    enable_lazy_loading: bool = Field(default=True, description="Enable lazy loading for large datasets")
+    cache_ttl_hours: int = Field(default=24, description="Cache time-to-live in hours")
+    use_cloud_storage: bool = Field(default=False, description="Use cloud storage for caching")
 
 
 _CONFIG: Optional[SocDataConfig] = None
