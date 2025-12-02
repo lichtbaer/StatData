@@ -12,6 +12,7 @@ The CLI entry point is `socdata`.
 - `rebuild-index`: Rebuild the search index from all available datasets
 - `load-cmd DATASET [--filters ...] [--export PATH]`: Load a dataset via adapter
 - `ingest-cmd ADAPTER FILE [--export PATH]`: Ingest a local file using adapter recipe
+- `serve [--host HOST] [--port PORT] [--reload]`: Start the REST API server
 
 ## Examples
 
@@ -34,6 +35,11 @@ socdata load-cmd eurostat:demo_r_pjangroup --filters 'geo=DE' --export demo.parq
 
 # Manual ingest (e.g., WVS extracted file)
 socdata ingest-cmd manual ~/Downloads/WVS_Extract.dta --export wvs.parquet
+
+# Start REST API server
+socdata serve
+socdata serve --host 0.0.0.0 --port 8080
+socdata serve --reload  # Auto-reload for development
 ```
 
 ## Filters format

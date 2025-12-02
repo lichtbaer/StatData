@@ -22,6 +22,7 @@ socdata load-cmd eurostat:une_rt_m --filters 'geo=DE'
 
 Notes:
 - Certain dimension combinations are invalid. Start with a minimal filter (e.g., `geo`).
+- Expanded dataset list includes 10 common Eurostat datasets (unemployment, GDP, population, education, health, crime, migration, etc.)
 
 ## Manual (recipes)
 
@@ -106,5 +107,41 @@ Notes:
 - Version detection from filename (e.g., GSS2022.dta → gss-2022)
 - Filters can be applied when loading from cache
 
+## ESS (European Social Survey)
+
+- Source: European Social Survey (https://www.europeansocialsurvey.org/)
+- Status: implemented (ingest from local files)
+
+ESS data is available after registration. This adapter supports ingestion from downloaded ESS data files (SPSS, Stata, or CSV formats).
+
+Usage:
+
+```bash
+# Ingest from local ESS data file
+socdata ingest-cmd ess:ess-round-10 ~/Downloads/ESS10e01_1.sav --export ess10.parquet
+
+# Or from ZIP archive
+socdata ingest-cmd ess:ess-round-10 ~/Downloads/ESS10.zip --export ess10.parquet
+```
+
+Python:
+
+```python
+import socdata as sd
+
+# Ingest from local file
+df = sd.ingest("ess:ess-round-10", file_path="~/Downloads/ESS10e01_1.sav")
+
+# Load from cache with filters
+df = sd.load("ess:ess-round-10", filters={"cntry": "DE"})
+```
+
+Notes:
+- ESS data requires registration at https://www.europeansocialsurvey.org/
+- Supports Stata (.dta), SPSS (.sav), and CSV formats
+- Auto-detects round from filename (e.g., ESS10e01_1.sav → ess-round-10)
+- Supports all ESS rounds (1-10) and cumulative file
+- Filters can be applied when loading from cache
+
 Planned adapters/recipes:
-- ESS, ICPSR, ISSP, CSES, EVS – manual ingest with per-study recipes
+- ICPSR, ISSP, CSES, EVS – manual ingest with per-study recipes

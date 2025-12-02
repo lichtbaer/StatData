@@ -11,10 +11,12 @@
 - ~~SOEP ODF adapter~~ ✓
 - ~~GSS scripted ingestion~~ ✓
 - ~~Local search index over metadata~~ ✓
-- Optional REST API (FastAPI)
+- ~~Optional REST API (FastAPI)~~ ✓
 
 ## Phase 3
-- Recipes for ESS, ICPSR, ISSP, CSES, EVS
+- ~~ESS adapter~~ ✓
+- Recipes for ICPSR, ISSP, CSES, EVS
 - i18n variable labels and mappings
 - Performance tuning and cloud storage option
 - Expanded tests and tutorials
+- Eurostat adapter: dynamic dataset discovery

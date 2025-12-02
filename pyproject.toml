@@ -26,6 +26,10 @@ dependencies = [
 eurostat = [
   "eurostat>=1.0.4",
 ]
+api = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+]
 dev = [
   "pytest>=8.2",
   "ruff>=0.5",
