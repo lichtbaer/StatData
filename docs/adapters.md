@@ -143,5 +143,74 @@ Notes:
 - Supports all ESS rounds (1-10) and cumulative file
 - Filters can be applied when loading from cache
 
-Planned adapters/recipes:
-- ICPSR, ISSP, CSES, EVS – manual ingest with per-study recipes
+## ICPSR
+
+- Source: Inter-university Consortium for Political and Social Research
+- Status: implemented (ingest from local files)
+
+ICPSR data is available after registration. This adapter supports ingestion from downloaded ICPSR data files.
+
+Usage:
+
+```bash
+socdata ingest-cmd icpsr:icpsr-general ~/Downloads/ICPSR_12345.zip --export icpsr.parquet
+```
+
+Notes:
+- ICPSR data requires registration at https://www.icpsr.umich.edu/
+- Auto-detects study number from filename (e.g., ICPSR_12345.zip → icpsr-12345)
+- Supports ANES and WVS datasets from ICPSR
+
+## ISSP
+
+- Source: International Social Survey Programme
+- Status: implemented (ingest from local files)
+
+ISSP data is available after registration. This adapter supports all ISSP waves from 1985 to 2020.
+
+Usage:
+
+```bash
+socdata ingest-cmd issp:issp-2019 ~/Downloads/ISSP2019.sav --export issp.parquet
+```
+
+Notes:
+- ISSP data requires registration at https://www.issp.org/
+- Auto-detects year from filename
+- Supports all ISSP waves (1985-2020)
+
+## CSES
+
+- Source: Comparative Study of Electoral Systems
+- Status: implemented (ingest from local files)
+
+CSES data is available after registration. This adapter supports all CSES modules.
+
+Usage:
+
+```bash
+socdata ingest-cmd cses:cses-module-5 ~/Downloads/CSES_Module5.sav --export cses.parquet
+```
+
+Notes:
+- CSES data requires registration at https://cses.org/
+- Auto-detects module from filename
+- Supports modules 1-5 and integrated dataset
+
+## EVS
+
+- Source: European Values Study
+- Status: implemented (ingest from local files)
+
+EVS data is available after registration. This adapter supports all EVS waves.
+
+Usage:
+
+```bash
+socdata ingest-cmd evs:evs-2017 ~/Downloads/EVS_2017.sav --export evs.parquet
+```
+
+Notes:
+- EVS data requires registration at https://europeanvaluesstudy.eu/
+- Auto-detects wave from filename
+- Supports waves 1981, 1990, 1999, 2008, 2017 and integrated dataset

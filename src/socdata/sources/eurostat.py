@@ -24,8 +24,18 @@ class EurostatAdapter(BaseAdapter):
             ]
         
         try:
-            # Try to get dataset list from Eurostat API
+            # Try dynamic discovery from Eurostat API
             datasets = []
+            
+            # First, try to get dataset list from Eurostat API
+            try:
+                # eurostat package may have a method to list datasets
+                # This is a placeholder - actual implementation depends on eurostat package API
+                # For now, we use a curated list but with more datasets
+                pass
+            except Exception:
+                pass
+            
             # Common Eurostat datasets - expanded list
             common_datasets = [
                 ("une_rt_m", "Unemployment rate - monthly"),
@@ -38,6 +48,11 @@ class EurostatAdapter(BaseAdapter):
                 ("hlth_silc_10", "Self-perceived health by sex, age and educational attainment level"),
                 ("crim_hom_soff", "Intentional homicide offences"),
                 ("migr_imm1ctz", "Immigration by age group, sex and citizenship"),
+                ("demo_gind", "Demographic balance and crude rates"),
+                ("nama_10r_2gdp", "GDP at regional level"),
+                ("educ_uoe_enrt01", "Pupils and students enrolled in education"),
+                ("hlth_dh010", "Healthcare expenditure"),
+                ("env_ac_ainah_r2", "Air emissions accounts by NACE Rev. 2 activity"),
             ]
             
             for code, title in common_datasets:

@@ -8,6 +8,10 @@ from ..sources.manual import ManualAdapter
 from ..sources.soep import SOEPAdapter
 from ..sources.gss import GSSAdapter
 from ..sources.ess import ESSAdapter
+from ..sources.icpsr import ICPSRAdapter
+from ..sources.issp import ISSPAdapter
+from ..sources.cses import CSESAdapter
+from ..sources.evs import EVSAdapter
 from .types import DatasetSummary
 from .search_index import get_index
 
@@ -18,6 +22,10 @@ _ADAPTERS: Dict[str, BaseAdapter] = {
     "soep": SOEPAdapter(),
     "gss": GSSAdapter(),
     "ess": ESSAdapter(),
+    "icpsr": ICPSRAdapter(),
+    "issp": ISSPAdapter(),
+    "cses": CSESAdapter(),
+    "evs": EVSAdapter(),
 }
 
 
