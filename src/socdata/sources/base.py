@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 
+from ..core.config import get_config
 from ..core.exceptions import MetadataError, ParserError, StorageError
 from ..core.logging import get_logger
 from ..core.parsers import read_table, read_table_with_meta
