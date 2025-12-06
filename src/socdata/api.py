@@ -10,6 +10,7 @@ from .core.registry import resolve_adapter
 from .core.i18n import get_i18n_manager
 from .core.logging import get_logger
 from .core.exceptions import AdapterNotFoundError, DatasetNotFoundError, I18nError
+from .core.validation import get_validator, DatasetSchema
 
 logger = get_logger(__name__)
 
@@ -19,6 +20,8 @@ def load(
     *,
     filters: Optional[Dict[str, Any]] = None,
     language: Optional[str] = None,
+    validate: bool = False,
+    schema: Optional[DatasetSchema] = None,
 ) -> pd.DataFrame:
     """
     Load a dataset with optional filters and language for labels.
@@ -65,6 +68,23 @@ def load(
         except Exception as e:
             logger.warning(f"Failed to apply i18n labels for {dataset_id}: {e}", exc_info=True)
             # Continue without i18n if it fails
+    
+    # Validate if requested
+    if validate:
+        try:
+            validator = get_validator()
+            report = validator.validate_and_check(df, schema=schema, dataset_id=dataset_id)
+            
+            if report.has_issues:
+                logger.warning(f"Data quality issues found for {dataset_id}: {report.issues}")
+            if report.has_warnings:
+                logger.info(f"Data quality warnings for {dataset_id}: {report.warnings}")
+            
+            # Store report in DataFrame attributes for access
+            df.attrs['quality_report'] = report.to_dict()
+        except Exception as e:
+            logger.warning(f"Failed to validate dataset {dataset_id}: {e}", exc_info=True)
+            # Continue without validation if it fails
     
     return df
 
