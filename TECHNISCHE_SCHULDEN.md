@@ -2,31 +2,32 @@
 
 ## 🔴 Kritisch (Sofort angehen)
 
-### 1. i18n-Funktionalität implementieren
-**Datei:** `src/socdata/api.py:32-38`  
-**Problem:** `language`-Parameter wird ignoriert, obwohl I18nManager existiert  
-**Impact:** Feature ist dokumentiert, aber nicht funktional  
-**Aufwand:** Mittel  
-**Lösung:**
-- Parquet-Metadaten lesen (pyarrow)
-- Variable/Value Labels extrahieren
-- I18nManager für Übersetzung nutzen
-- Labels auf DataFrame-Spalten anwenden
+### 1. i18n-Funktionalität implementieren ✅ ERLEDIGT
+**Datei:** `src/socdata/api.py:62-177`  
+**Status:** ✅ Vollständig implementiert  
+**Details:**
+- Parquet-Metadaten werden gelesen
+- Variable/Value Labels werden übersetzt
+- Labels werden auf DataFrame angewendet
+- Fallback-Mechanismen vorhanden
 
-### 2. Logging-Infrastruktur einrichten
-**Datei:** Projektweit  
-**Problem:** Keine strukturierte Fehlerprotokollierung  
-**Impact:** Debugging sehr schwierig, Production-Monitoring unmöglich  
-**Aufwand:** Niedrig  
-**Lösung:**
-- `logging`-Modul integrieren
+### 2. Logging-Infrastruktur einrichten ✅ ERLEDIGT
+**Datei:** `src/socdata/core/logging.py`  
+**Status:** ✅ Vollständig implementiert  
+**Details:**
+- `logging`-Modul integriert
 - Logger pro Modul
 - Log-Level konfigurierbar (Config)
-- Strukturierte Logs (JSON optional)
+- Strukturierte Logs
 
-### 3. Testabdeckung für Core-Module
+### 3. Testabdeckung für Core-Module ⚠️ IN ARBEIT
 **Datei:** `tests/`  
-**Problem:** Keine Tests für api.py, cli.py, server.py, registry.py  
+**Status:** ⚠️ Teilweise implementiert
+- ✅ `test_api.py` - 11 Tests (vollständig)
+- ✅ `test_registry.py` - 16 Tests (vollständig)
+- ❌ Keine Tests für `cli.py`
+- ❌ Keine Tests für `server.py`
+- ❌ Keine Tests für `parsers.py`, `download.py`, `cloud_storage.py`
 **Impact:** Regressionsrisiko bei Änderungen  
 **Aufwand:** Hoch  
 **Lösung:**
@@ -37,15 +38,13 @@
 
 ## 🟡 Wichtig (Nächste Iteration)
 
-### 4. Config-System vervollständigen
-**Datei:** `src/socdata/core/config.py:28-31`  
-**Problem:** Config-Datei wird nicht geladen  
-**Impact:** Keine flexible Konfiguration möglich  
-**Aufwand:** Niedrig  
-**Lösung:**
-- YAML/JSON-Parsing implementieren
-- Config-Datei validieren
-- Environment-Variable-Override beibehalten
+### 4. Config-System vervollständigen ✅ ERLEDIGT
+**Datei:** `src/socdata/core/config.py:56-88`  
+**Status:** ✅ Vollständig implementiert  
+**Details:**
+- YAML/JSON-Parsing implementiert
+- Config-Datei validiert
+- Environment-Variable-Override funktioniert
 
 ### 5. Fehlerbehandlung spezifischer gestalten
 **Datei:** Projektweit (41 Stellen mit `except Exception:`)  
@@ -139,24 +138,38 @@
 
 ## Testabdeckung
 
-**Aktuell:** 22 Test-Funktionen  
+**Aktuell:** 59 Test-Funktionen (10 Test-Dateien)  
+**Vorhanden:**
+- ✅ api.py (11 Tests)
+- ✅ registry.py (16 Tests)
+- ✅ search_index.py (9 Tests)
+- ✅ config.py (10 Tests)
+- ✅ i18n.py (3 Tests)
+- ✅ cache.py (2 Tests)
+- ✅ gss.py (3 Tests)
+- ✅ soep.py (2 Tests)
+- ✅ icpsr.py (2 Tests)
+- ✅ manual_wvs.py (1 Test)
+
 **Fehlend:**
-- api.py (0 Tests)
-- cli.py (0 Tests)
-- server.py (0 Tests)
-- registry.py (0 Tests)
-- cloud_storage.py (0 Tests)
-- download.py (0 Tests)
-- parsers.py (0 Tests)
-- eurostat.py (0 Tests)
-- ess.py, cses.py, evs.py, issp.py (0 Tests)
+- ❌ cli.py (0 Tests)
+- ❌ server.py (0 Tests)
+- ❌ cloud_storage.py (0 Tests)
+- ❌ download.py (0 Tests)
+- ❌ parsers.py (0 Tests)
+- ❌ eurostat.py (0 Tests)
+- ❌ ess.py, cses.py, evs.py, issp.py (0 Tests)
 
 **Ziel:** Mindestens 80% Code-Coverage für Core-Module
 
 ## Metriken
 
-- **Exception-Handler:** 41 (zu generisch)
-- **NotImplementedError:** 9 (teilweise erwartet)
-- **Tests:** 22 Funktionen
+- **Exception-Handler:** 54 (zu generisch, aber Logging vorhanden)
+- **NotImplementedError:** 22 (teilweise erwartet)
+- **Tests:** 59 Funktionen (10 Test-Dateien)
 - **Adapter:** 9 implementiert
+- **Code-Zeilen:** ~4.600
+- **Module:** 27 Python-Dateien
 - **Dokumentation:** Umfangreich vorhanden
+
+**Siehe auch:** `TECHNISCHE_ANALYSE_2024.md` für eine detaillierte aktuelle Analyse.

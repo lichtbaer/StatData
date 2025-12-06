@@ -71,33 +71,24 @@ src/socdata/
 
 ### 1. Unvollständige Implementierungen
 
-#### 1.1 i18n-Funktionalität nicht genutzt
-**Datei:** `src/socdata/api.py:32-38`
-```python
-# Apply i18n if language is specified
-if language:
-    # Note: Variable/value labels are stored in Parquet metadata,
-    # not in the DataFrame itself. This would require reading metadata
-    # and applying translations, which is a more complex operation.
-    # For now, we return the DataFrame as-is.
-    # Future enhancement: add method to apply translations to DataFrame columns
-    pass
-```
-**Problem:** Der `language`-Parameter wird ignoriert, obwohl ein I18nManager existiert.  
-**Impact:** Nutzer können keine übersetzten Labels erhalten.  
-**Lösung:** Parquet-Metadaten lesen und Labels übersetzen, dann auf DataFrame anwenden.
+#### 1.1 i18n-Funktionalität ✅ IMPLEMENTIERT
+**Datei:** `src/socdata/api.py:62-177`
+**Status:** ✅ Vollständig implementiert
+**Details:** 
+- Parquet-Metadaten werden gelesen
+- Variable/Value Labels werden übersetzt
+- Labels werden auf DataFrame angewendet
+- Fallback-Mechanismen vorhanden
+**Hinweis:** Diese technische Schuld wurde behoben.
 
-#### 1.2 Config-Loading aus Umgebungsvariablen unvollständig
-**Datei:** `src/socdata/core/config.py:28-31`
-```python
-env_path = os.getenv("SOCDATA_CONFIG")
-if env_path and Path(env_path).exists():
-    # Simple env-based override later can parse YAML/JSON
-    pass
-```
-**Problem:** Config-Datei wird nicht geladen, obwohl der Pfad geprüft wird.  
-**Impact:** Keine Möglichkeit, Konfiguration über Umgebungsvariablen zu setzen.  
-**Lösung:** YAML/JSON-Parsing implementieren.
+#### 1.2 Config-Loading aus Umgebungsvariablen ✅ IMPLEMENTIERT
+**Datei:** `src/socdata/core/config.py:32-88`
+**Status:** ✅ Vollständig implementiert
+**Details:**
+- YAML/JSON-Parsing implementiert
+- Environment-Variable-Override funktioniert
+- Fehlerbehandlung vorhanden
+**Hinweis:** Diese technische Schuld wurde behoben.
 
 #### 1.3 Cloud Storage Backend abstrakt
 **Datei:** `src/socdata/core/cloud_storage.py:10-29`
@@ -128,21 +119,20 @@ except Exception:
 ### 2. Fehlerbehandlung
 
 #### 2.1 Zu generische Exception-Handler
-**Gefunden:** 41 Stellen mit `except Exception:` oder `except Exception as e:`
+**Gefunden:** 54 Stellen mit `except Exception:` oder `except Exception as e:`
+
+**Status:** ⚠️ Teilweise verbessert
+- ✅ Logging-Infrastruktur vorhanden (`src/socdata/core/logging.py`)
+- ✅ Spezifische Exceptions definiert (`src/socdata/core/exceptions.py`)
+- ⚠️ Viele Adapter nutzen noch generische Exception-Handler
 
 **Problematische Beispiele:**
-- `src/socdata/core/registry.py:76-78` - Index-Fehler werden stillschweigend ignoriert
-- `src/socdata/core/search_index.py:404-405` - Manifest-Lesefehler werden ignoriert
-- `src/socdata/sources/manual.py:124-126` - Parquet-Metadaten-Fehler werden ignoriert
-
-**Problem:** 
-- Fehler werden verschluckt, Debugging wird erschwert
-- Keine Unterscheidung zwischen erwarteten und unerwarteten Fehlern
-- Keine Logging-Infrastruktur
+- `src/socdata/core/registry.py:162` - Index-Fehler werden geloggt, aber stillschweigend ignoriert
+- Viele Adapter haben ähnliche `except Exception: pass`-Blöcke
 
 **Empfehlung:**
-- Spezifische Exceptions fangen
-- Logging einrichten (z.B. `logging`-Modul)
+- Spezifischere Exceptions in Adaptern verwenden
+- Gemeinsame Fehlerbehandlung in BaseAdapter
 - Wichtige Fehler weiterwerfen, nur erwartete Fehler abfangen
 
 #### 2.2 Fehlende Validierung
@@ -199,18 +189,28 @@ sql = f"""
 - `test_search_index.py` - 9 Tests
 - `test_soep.py` - 2 Tests
 
-**Fehlende Tests:**
-- Keine Tests für `api.py` (load, ingest)
-- Keine Tests für `cli.py`
-- Keine Tests für `server.py`
-- Keine Tests für `registry.py`
-- Keine Tests für `cloud_storage.py`
-- Keine Tests für `download.py`
-- Keine Tests für `parsers.py`
-- Keine Tests für Eurostat-Adapter
-- Keine Tests für ESS, CSES, EVS, ISSP Adapter
+**Aktuelle Tests:**
+- ✅ `test_api.py` - 11 Tests (vollständig)
+- ✅ `test_registry.py` - 16 Tests (vollständig)
+- ✅ `test_search_index.py` - 9 Tests
+- ✅ `test_config.py` - 10 Tests
+- ✅ `test_i18n.py` - 3 Tests
+- ✅ `test_cache.py` - 2 Tests
+- ✅ `test_gss.py` - 3 Tests
+- ✅ `test_soep.py` - 2 Tests
+- ✅ `test_icpsr.py` - 2 Tests
+- ✅ `test_manual_wvs.py` - 1 Test
 
-**Empfehlung:** Testabdeckung deutlich erhöhen, besonders für Core-Funktionalität.
+**Fehlende Tests:**
+- ❌ Keine Tests für `cli.py`
+- ❌ Keine Tests für `server.py`
+- ❌ Keine Tests für `cloud_storage.py`
+- ❌ Keine Tests für `download.py`
+- ❌ Keine Tests für `parsers.py`
+- ❌ Keine Tests für Eurostat-Adapter
+- ❌ Keine Tests für ESS, CSES, EVS, ISSP Adapter
+
+**Empfehlung:** Testabdeckung auf mindestens 80% für Core-Module erhöhen.
 
 ### 5. Dokumentation
 
@@ -260,23 +260,24 @@ Aus `docs/roadmap.md`:
 
 ### Weitere identifizierte TODOs
 
-1. **i18n-Implementierung vervollständigen**
-   - Parquet-Metadaten lesen
-   - Labels auf DataFrame anwenden
-   - Siehe `src/socdata/api.py:32-38`
+1. **i18n-Implementierung vervollständigen** ✅ ERLEDIGT
+   - ✅ Parquet-Metadaten lesen
+   - ✅ Labels auf DataFrame anwenden
+   - Status: Vollständig implementiert in `src/socdata/api.py:62-177`
 
-2. **Config-System erweitern**
-   - YAML/JSON-Parsing für Config-Dateien
-   - Siehe `src/socdata/core/config.py:28-31`
+2. **Config-System erweitern** ✅ ERLEDIGT
+   - ✅ YAML/JSON-Parsing für Config-Dateien
+   - Status: Vollständig implementiert in `src/socdata/core/config.py:56-88`
 
 3. **Eurostat Dynamic Discovery**
    - API-Integration für automatische Dataset-Erkennung
    - Siehe `src/socdata/sources/eurostat.py:31-37`
 
-4. **Logging-Infrastruktur**
-   - `logging`-Modul integrieren
-   - Strukturierte Logs
-   - Log-Level konfigurierbar
+4. **Logging-Infrastruktur** ✅ ERLEDIGT
+   - ✅ `logging`-Modul integriert
+   - ✅ Strukturierte Logs
+   - ✅ Log-Level konfigurierbar
+   - Status: Vollständig implementiert in `src/socdata/core/logging.py`
 
 5. **Fehlerbehandlung verbessern**
    - Spezifische Exceptions
@@ -302,9 +303,9 @@ Aus `docs/roadmap.md`:
 ## Empfohlene Prioritäten
 
 ### Hoch (Kritisch)
-1. **i18n-Funktionalität implementieren** - Feature ist dokumentiert, aber nicht funktional
-2. **Logging einrichten** - Wichtig für Debugging und Production
-3. **Testabdeckung erhöhen** - Besonders für Core-Module
+1. **i18n-Funktionalität implementieren** ✅ ERLEDIGT - Vollständig implementiert
+2. **Logging einrichten** ✅ ERLEDIGT - Vollständig implementiert
+3. **Testabdeckung erhöhen** ⚠️ IN ARBEIT - API und Registry getestet, CLI/Server/Parser fehlen noch
 
 ### Mittel (Wichtig)
 4. **Fehlerbehandlung verbessern** - Spezifische Exceptions, bessere Fehlermeldungen
@@ -318,19 +319,22 @@ Aus `docs/roadmap.md`:
 
 ## Metriken
 
-- **Code-Zeilen:** ~3000+ (geschätzt)
+- **Code-Zeilen:** ~4.600 (gemessen)
+- **Module:** 27 Python-Dateien
 - **Adapter:** 9 implementiert
-- **Tests:** 22 Test-Funktionen
+- **Tests:** 59 Test-Funktionen (10 Test-Dateien)
 - **Dokumentation:** Umfangreich vorhanden (MkDocs)
-- **Technische Schulden:** Mittel (mehrere unvollständige Features, fehlende Tests)
+- **Technische Schulden:** Niedrig-Mittel (mehrere Features implementiert, Testabdeckung noch unvollständig)
 
 ## Zusammenfassung
 
-Das Projekt ist in einem **guten Zustand** mit funktionierender Basis-Infrastruktur. Die Hauptprobleme sind:
+Das Projekt ist in einem **guten Zustand** mit funktionierender Basis-Infrastruktur. Die meisten kritischen technischen Schulden wurden bereits behoben:
 
-1. **Unvollständige Features:** i18n, Config-Loading, Eurostat Discovery
-2. **Fehlende Tests:** Besonders für Core-Module und API
-3. **Fehlerbehandlung:** Zu generisch, keine Logging-Infrastruktur
+1. **✅ Implementierte Features:** i18n, Config-Loading, Logging
+2. **⚠️ Testabdeckung:** API und Registry getestet, CLI/Server/Parser fehlen noch
+3. **⚠️ Fehlerbehandlung:** Logging vorhanden, aber noch zu generische Exception-Handler in Adaptern
 4. **Code-Qualität:** Einige Verbesserungen möglich (Typisierung, Duplikation)
 
-Die Architektur ist **solide** und **erweiterbar**. Die meisten technischen Schulden sind nicht kritisch, sollten aber vor größeren Features adressiert werden.
+Die Architektur ist **solide** und **erweiterbar**. Die verbleibenden technischen Schulden sind nicht kritisch, sollten aber vor größeren Features adressiert werden.
+
+**Siehe auch:** `TECHNISCHE_ANALYSE_2024.md` für eine detaillierte aktuelle Analyse.
