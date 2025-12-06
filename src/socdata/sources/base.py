@@ -177,3 +177,34 @@ class BaseAdapter(ABC):
             )
             return False
 
+    def _read_parquet_optimized(self, parquet_path: Path, *, columns: Optional[List[str]] = None) -> pd.DataFrame:
+        """
+        Read Parquet file with optional lazy loading and column selection.
+        
+        Args:
+            parquet_path: Path to Parquet file
+            columns: Optional list of columns to read (for lazy loading)
+        
+        Returns:
+            DataFrame with the data
+        """
+        cfg = get_config()
+        
+        if cfg.enable_lazy_loading and columns:
+            # Lazy loading: only read specified columns
+            try:
+                import pyarrow.parquet as pq
+                # Read only specified columns for better performance
+                table = pq.read_table(parquet_path, columns=columns)
+                return table.to_pandas()
+            except Exception as e:
+                logger.warning(
+                    f"Failed to read Parquet with column selection, falling back to full read: {e}",
+                    exc_info=True
+                )
+                # Fallback to full read
+                return pd.read_parquet(parquet_path)
+        else:
+            # Standard read - load all columns
+            return pd.read_parquet(parquet_path)
+
