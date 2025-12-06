@@ -11,6 +11,9 @@ from ..core.parsers import read_table, read_table_with_meta
 from ..core.types import DatasetSummary
 from ..core.models import IngestionManifest
 from ..core.storage import get_dataset_dir
+from ..core.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 class ManualAdapter(BaseAdapter):
@@ -121,17 +124,17 @@ class ManualAdapter(BaseAdapter):
 			table = table.replace_schema_metadata(new_schema.metadata)
 			out_path = proc_dir / "data.parquet"
 			pq.write_table(table, out_path)
-		except Exception:
-			# Best-effort; ignore metadata write failures
-			pass
+		except Exception as e:
+			# Best-effort; log metadata write failures but continue
+			logger.warning(f"Failed to write Parquet metadata for {dsid}: {e}", exc_info=True)
 
 		# Index the dataset
 		try:
 			from ..core.registry import index_dataset_from_manifest
 			index_dataset_from_manifest(dsid, str(manifest_path))
-		except Exception:
-			# Silently fail if indexing fails
-			pass
+		except Exception as e:
+			# Log indexing failures but don't fail ingestion
+			logger.warning(f"Failed to index dataset {dsid}: {e}", exc_info=True)
 
 		return df
 
