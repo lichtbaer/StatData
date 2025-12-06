@@ -8,6 +8,10 @@ from typing import Dict, List, Optional, Any
 
 from .config import get_config
 from .types import DatasetSummary
+from .logging import get_logger
+from .exceptions import SearchIndexError
+
+logger = get_logger(__name__)
 
 
 class SearchIndex:
@@ -401,8 +405,8 @@ class SearchIndex:
                     variable_labels = manifest_data.get("variable_labels", {})
                     value_labels = manifest_data.get("value_labels", {})
                     license_info = manifest_data.get("license")
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(f"Could not load manifest for {ds.id}: {e}")
             
             self.index_dataset(
                 dataset_id=ds.id,

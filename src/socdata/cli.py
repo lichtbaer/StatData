@@ -120,10 +120,23 @@ def rebuild_index() -> None:
 
 @app.command()
 def load_cmd(dataset: str, filters: Optional[str] = None, export: Optional[Path] = None) -> None:
+	"""Load a dataset with optional filters and export to file."""
+	from .core.exceptions import DatasetNotFoundError, AdapterNotFoundError
+	from .core.logging import get_logger
+	
+	logger = get_logger(__name__)
+	
+	# Validate dataset parameter
+	if not dataset or not isinstance(dataset, str):
+		console.print("[red]Error: dataset must be a non-empty string[/red]")
+		raise typer.Exit(1)
+	
 	filters_dict = None
 	if filters:
 		try:
 			filters_dict = json.loads(filters)
+			if not isinstance(filters_dict, dict):
+				raise ValueError("Filters must be a JSON object")
 		except json.JSONDecodeError:
 			# accept simple key=value,key2=value2 format
 			parts = [p.strip() for p in filters.split(",") if p.strip()]
@@ -133,30 +146,78 @@ def load_cmd(dataset: str, filters: Optional[str] = None, export: Optional[Path]
 					k, v = p.split("=", 1)
 					kv[k.strip()] = v.strip()
 			filters_dict = kv or None
-	df = load(dataset, filters=filters_dict)
+		except ValueError as e:
+			console.print(f"[red]Error: Invalid filters format: {e}[/red]")
+			raise typer.Exit(1)
+	
+	try:
+		df = load(dataset, filters=filters_dict)
+	except (DatasetNotFoundError, AdapterNotFoundError) as e:
+		console.print(f"[red]Error: {e}[/red]")
+		raise typer.Exit(1)
+	except Exception as e:
+		logger.error(f"Unexpected error loading dataset {dataset}: {e}", exc_info=True)
+		console.print(f"[red]Error: Failed to load dataset: {e}[/red]")
+		raise typer.Exit(1)
+	
 	console.print(df.head())
 	if export:
 		export = Path(export)
 		export.parent.mkdir(parents=True, exist_ok=True)
-		if export.suffix.lower() in {".parquet"}:
-			df.to_parquet(export)
-		else:
-			df.to_csv(export, index=False)
-		console.print(f"Exported to {export}")
+		try:
+			if export.suffix.lower() in {".parquet"}:
+				df.to_parquet(export)
+			else:
+				df.to_csv(export, index=False)
+			console.print(f"[green]Exported to {export}[/green]")
+		except Exception as e:
+			console.print(f"[red]Error exporting to {export}: {e}[/red]")
+			raise typer.Exit(1)
 
 
 @app.command()
 def ingest_cmd(dataset: str, file_path: Path, export: Optional[Path] = None) -> None:
-	df = ingest(dataset, file_path=str(file_path))
+	"""Ingest a dataset from a local file."""
+	from .core.exceptions import AdapterNotFoundError, ParserError
+	from .core.logging import get_logger
+	
+	logger = get_logger(__name__)
+	
+	# Validate inputs
+	if not dataset or not isinstance(dataset, str):
+		console.print("[red]Error: dataset must be a non-empty string[/red]")
+		raise typer.Exit(1)
+	
+	if not file_path.exists():
+		console.print(f"[red]Error: File not found: {file_path}[/red]")
+		raise typer.Exit(1)
+	
+	try:
+		df = ingest(dataset, file_path=str(file_path))
+	except (AdapterNotFoundError, ParserError) as e:
+		console.print(f"[red]Error: {e}[/red]")
+		raise typer.Exit(1)
+	except FileNotFoundError as e:
+		console.print(f"[red]Error: {e}[/red]")
+		raise typer.Exit(1)
+	except Exception as e:
+		logger.error(f"Unexpected error ingesting dataset {dataset}: {e}", exc_info=True)
+		console.print(f"[red]Error: Failed to ingest dataset: {e}[/red]")
+		raise typer.Exit(1)
+	
 	console.print(df.head())
 	if export:
 		export = Path(export)
 		export.parent.mkdir(parents=True, exist_ok=True)
-		if export.suffix.lower() in {".parquet"}:
-			df.to_parquet(export)
-		else:
-			df.to_csv(export, index=False)
-		console.print(f"Exported to {export}")
+		try:
+			if export.suffix.lower() in {".parquet"}:
+				df.to_parquet(export)
+			else:
+				df.to_csv(export, index=False)
+			console.print(f"[green]Exported to {export}[/green]")
+		except Exception as e:
+			console.print(f"[red]Error exporting to {export}: {e}[/red]")
+			raise typer.Exit(1)
 
 
 @app.command()
