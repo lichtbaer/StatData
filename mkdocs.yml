@@ -33,4 +33,5 @@ nav:
   - Adapters: adapters.md
   - Architecture: architecture.md
   - Configuration: configuration.md
+  - Performance: performance.md
   - Roadmap: roadmap.md

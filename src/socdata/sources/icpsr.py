@@ -42,6 +42,41 @@ class ICPSRAdapter(BaseAdapter):
                 source="icpsr",
                 title="World Values Survey (via ICPSR)"
             ),
+            DatasetSummary(
+                id="icpsr:general-social-survey",
+                source="icpsr",
+                title="General Social Survey (GSS via ICPSR)"
+            ),
+            DatasetSummary(
+                id="icpsr:panel-study-income-dynamics",
+                source="icpsr",
+                title="Panel Study of Income Dynamics (PSID)"
+            ),
+            DatasetSummary(
+                id="icpsr:national-longitudinal-survey",
+                source="icpsr",
+                title="National Longitudinal Survey (NLS)"
+            ),
+            DatasetSummary(
+                id="icpsr:health-retirement-study",
+                source="icpsr",
+                title="Health and Retirement Study (HRS)"
+            ),
+            DatasetSummary(
+                id="icpsr:add-health",
+                source="icpsr",
+                title="National Longitudinal Study of Adolescent to Adult Health (Add Health)"
+            ),
+            DatasetSummary(
+                id="icpsr:current-population-survey",
+                source="icpsr",
+                title="Current Population Survey (CPS)"
+            ),
+            DatasetSummary(
+                id="icpsr:behavioral-risk-factor-surveillance",
+                source="icpsr",
+                title="Behavioral Risk Factor Surveillance System (BRFSS)"
+            ),
         ]
 
     def load(self, dataset_id: str, *, filters: Dict[str, Any]) -> pd.DataFrame:
@@ -67,7 +102,9 @@ class ICPSRAdapter(BaseAdapter):
         parquet_path = cache_dir / "processed" / "data.parquet"
         
         if parquet_path.exists():
-            df = pd.read_parquet(parquet_path)
+            # Use optimized read with column selection if filters are provided
+            columns = list(filters.keys()) if filters else None
+            df = self._read_parquet_optimized(parquet_path, columns=columns)
             # Apply filters if provided
             if filters:
                 df = self._apply_filters(df, filters)

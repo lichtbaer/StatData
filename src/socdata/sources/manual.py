@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Tuple
 import pandas as pd
 
 from .base import BaseAdapter
+from ..core.exceptions import MetadataError, ParserError, SearchIndexError, StorageError
 from ..core.parsers import read_table, read_table_with_meta
 from ..core.types import DatasetSummary
 from ..core.models import IngestionManifest
@@ -75,9 +76,20 @@ class ManualAdapter(BaseAdapter):
 		# Read with metadata when possible
 		try:
 			df, meta = read_table_with_meta(target)
-		except Exception:
+		except (ParserError, MetadataError) as e:
+			# Expected errors - fallback to basic read
+			logger.debug(f"Failed to read metadata from {target}, falling back to basic read: {e}")
 			df = read_table(target)
 			meta = {"variable_labels": {}, "value_labels": {}}
+		except Exception as e:
+			# Unexpected errors - try fallback but log
+			logger.warning(f"Unexpected error reading metadata from {target}: {e}", exc_info=True)
+			try:
+				df = read_table(target)
+				meta = {"variable_labels": {}, "value_labels": {}}
+			except Exception as e2:
+				logger.error(f"Fallback read also failed for {target}: {e2}", exc_info=True)
+				raise ParserError(f"Failed to read file {target}: {e2}") from e2
 
 		# Normalize
 		df = self._normalize(df)
@@ -124,17 +136,33 @@ class ManualAdapter(BaseAdapter):
 			table = table.replace_schema_metadata(new_schema.metadata)
 			out_path = proc_dir / "data.parquet"
 			pq.write_table(table, out_path)
+		except (OSError, IOError, PermissionError) as e:
+			# File system errors - try fallback
+			logger.warning(f"Failed to write Parquet metadata for {dsid} (filesystem error): {e}", exc_info=True)
+			try:
+				df.to_parquet(out_path, index=False)
+			except Exception as e2:
+				logger.error(f"Fallback Parquet write also failed for {dsid}: {e2}", exc_info=True)
+				raise StorageError(f"Failed to write Parquet file {out_path}: {e2}") from e2
 		except Exception as e:
-			# Best-effort; log metadata write failures but continue
+			# Other errors (e.g., pyarrow errors) - try fallback
 			logger.warning(f"Failed to write Parquet metadata for {dsid}: {e}", exc_info=True)
+			try:
+				df.to_parquet(out_path, index=False)
+			except Exception as e2:
+				logger.error(f"Fallback Parquet write also failed for {dsid}: {e2}", exc_info=True)
+				raise StorageError(f"Failed to write Parquet file {out_path}: {e2}") from e2
 
 		# Index the dataset
 		try:
 			from ..core.registry import index_dataset_from_manifest
 			index_dataset_from_manifest(dsid, str(manifest_path))
-		except Exception as e:
-			# Log indexing failures but don't fail ingestion
+		except SearchIndexError as e:
+			# Expected index errors - log but don't fail ingestion
 			logger.warning(f"Failed to index dataset {dsid}: {e}", exc_info=True)
+		except Exception as e:
+			# Unexpected errors - log with full traceback
+			logger.error(f"Unexpected error indexing dataset {dsid}: {e}", exc_info=True)
 
 		return df
 

@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 
+from ..core.config import get_config
+from ..core.exceptions import MetadataError, ParserError, StorageError
 from ..core.logging import get_logger
 from ..core.parsers import read_table, read_table_with_meta
 from ..core.types import DatasetSummary
@@ -41,13 +43,27 @@ class BaseAdapter(ABC):
         """
         try:
             return read_table_with_meta(path, encoding=encoding, sep=sep)
-        except Exception as e:
+        except (ParserError, MetadataError) as e:
+            # Expected errors - log and fallback
             logger.warning(
                 f"Failed to read metadata from {path}, falling back to basic read: {e}",
                 exc_info=True
             )
             df = read_table(path, encoding=encoding, sep=sep)
             return df, {"variable_labels": {}, "value_labels": {}}
+        except Exception as e:
+            # Unexpected errors - log with full traceback
+            logger.error(
+                f"Unexpected error reading metadata from {path}: {e}",
+                exc_info=True
+            )
+            # Still try to fallback to basic read
+            try:
+                df = read_table(path, encoding=encoding, sep=sep)
+                return df, {"variable_labels": {}, "value_labels": {}}
+            except Exception as e2:
+                logger.error(f"Fallback read also failed for {path}: {e2}", exc_info=True)
+                raise ParserError(f"Failed to read file {path}: {e2}") from e2
 
     def _write_parquet_with_metadata(
         self,
@@ -96,7 +112,24 @@ class BaseAdapter(ABC):
             table = table.replace_schema_metadata(new_schema.metadata)
             pq.write_table(table, output_path)
             return True
+        except (OSError, IOError, PermissionError) as e:
+            # File system errors - log and try fallback
+            logger.warning(
+                f"Failed to write Parquet metadata for {dataset_id} (filesystem error): {e}",
+                exc_info=True
+            )
+            # Fallback: write without metadata
+            try:
+                df.to_parquet(output_path, index=False)
+                return True
+            except Exception as e2:
+                logger.error(
+                    f"Failed to write Parquet file {output_path}: {e2}",
+                    exc_info=True
+                )
+                raise StorageError(f"Failed to write Parquet file {output_path}: {e2}") from e2
         except Exception as e:
+            # Other errors (e.g., pyarrow errors) - log and try fallback
             logger.warning(
                 f"Failed to write Parquet metadata for {dataset_id}: {e}",
                 exc_info=True
@@ -110,7 +143,7 @@ class BaseAdapter(ABC):
                     f"Failed to write Parquet file {output_path}: {e2}",
                     exc_info=True
                 )
-                return False
+                raise StorageError(f"Failed to write Parquet file {output_path}: {e2}") from e2
 
     def _index_dataset_safe(self, dataset_id: str, manifest_path: Path) -> bool:
         """
@@ -125,12 +158,53 @@ class BaseAdapter(ABC):
         """
         try:
             from ..core.registry import index_dataset_from_manifest
+            from ..core.exceptions import SearchIndexError
+            
             index_dataset_from_manifest(dataset_id, str(manifest_path))
             return True
-        except Exception as e:
+        except SearchIndexError as e:
+            # Expected index errors - log but don't fail ingestion
             logger.warning(
                 f"Failed to index dataset {dataset_id} from manifest {manifest_path}: {e}",
                 exc_info=True
             )
             return False
+        except Exception as e:
+            # Unexpected errors - log with full traceback
+            logger.error(
+                f"Unexpected error indexing dataset {dataset_id} from manifest {manifest_path}: {e}",
+                exc_info=True
+            )
+            return False
+
+    def _read_parquet_optimized(self, parquet_path: Path, *, columns: Optional[List[str]] = None) -> pd.DataFrame:
+        """
+        Read Parquet file with optional lazy loading and column selection.
+        
+        Args:
+            parquet_path: Path to Parquet file
+            columns: Optional list of columns to read (for lazy loading)
+        
+        Returns:
+            DataFrame with the data
+        """
+        cfg = get_config()
+        
+        if cfg.enable_lazy_loading and columns:
+            # Lazy loading: only read specified columns
+            try:
+                import pyarrow.parquet as pq
+                # Read only specified columns for better performance
+                table = pq.read_table(parquet_path, columns=columns)
+                return table.to_pandas()
+            except Exception as e:
+                logger.warning(
+                    f"Failed to read Parquet with column selection, falling back to full read: {e}",
+                    exc_info=True
+                )
+                # Fallback to full read
+                return pd.read_parquet(parquet_path)
+        else:
+            # Standard read - load all columns
+            return pd.read_parquet(parquet_path)
 
