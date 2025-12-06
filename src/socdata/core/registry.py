@@ -12,6 +12,8 @@ from ..sources.icpsr import ICPSRAdapter
 from ..sources.issp import ISSPAdapter
 from ..sources.cses import CSESAdapter
 from ..sources.evs import EVSAdapter
+from ..sources.allbus import ALLBUSAdapter
+from ..sources.opendata import OpenDataAdapter
 from .types import DatasetSummary
 from .search_index import get_index
 from .logging import get_logger
@@ -30,6 +32,8 @@ _ADAPTERS: Dict[str, BaseAdapter] = {
     "issp": ISSPAdapter(),
     "cses": CSESAdapter(),
     "evs": EVSAdapter(),
+    "allbus": ALLBUSAdapter(),
+    "opendata": OpenDataAdapter(),
 }
 
 

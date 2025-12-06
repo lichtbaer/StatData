@@ -42,7 +42,7 @@ def load(
     if not dataset_id or not isinstance(dataset_id, str):
         raise ValueError("dataset_id must be a non-empty string")
     
-    if ":" not in dataset_id and dataset_id not in ["manual", "eurostat", "soep", "gss", "ess", "icpsr", "issp", "cses", "evs"]:
+    if ":" not in dataset_id and dataset_id not in ["manual", "eurostat", "soep", "gss", "ess", "icpsr", "issp", "cses", "evs", "allbus", "opendata"]:
         raise ValueError(f"Invalid dataset_id format: {dataset_id}. Expected format: 'source:dataset' or adapter name")
     
     # Validate language code if provided

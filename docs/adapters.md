@@ -214,3 +214,95 @@ Notes:
 - EVS data requires registration at https://europeanvaluesstudy.eu/
 - Auto-detects wave from filename
 - Supports waves 1981, 1990, 1999, 2008, 2017 and integrated dataset
+
+## ALLBUS (German General Social Survey)
+
+- Source: ALLBUS (Allgemeine Bevölkerungsumfrage der Sozialwissenschaften) by GESIS
+- Status: implemented (ingest from local files)
+
+ALLBUS is the German equivalent of the GSS, conducted by GESIS. This adapter supports all ALLBUS waves from 1980 to 2021.
+
+Usage:
+
+```bash
+# Ingest from local ALLBUS data file
+socdata ingest-cmd allbus:allbus-2021 ~/Downloads/ALLBUS2021.sav --export allbus.parquet
+```
+
+Python:
+
+```python
+import socdata as sd
+
+# Ingest from local file
+df = sd.ingest("allbus:allbus-2021", file_path="~/Downloads/ALLBUS2021.sav")
+
+# Load from cache with filters
+df = sd.load("allbus:allbus-2021", filters={"year": 2021})
+```
+
+Notes:
+- ALLBUS data requires registration at https://www.gesis.org/allbus/
+- Auto-detects year from filename
+- Supports all ALLBUS waves (1980-2021) and cumulative dataset
+- Filters can be applied when loading from cache
+
+## ICPSR (Extended)
+
+- Source: Inter-university Consortium for Political and Social Research
+- Status: implemented (ingest from local files, extended with more studies)
+
+ICPSR provides access to a wide range of social science datasets. This adapter has been extended to support additional major studies.
+
+Supported Studies:
+- General Archive (various studies)
+- American National Election Studies (ANES)
+- World Values Survey (via ICPSR)
+- General Social Survey (GSS via ICPSR)
+- Panel Study of Income Dynamics (PSID)
+- National Longitudinal Survey (NLS)
+- Health and Retirement Study (HRS)
+- Add Health (National Longitudinal Study of Adolescent to Adult Health)
+- Current Population Survey (CPS)
+- Behavioral Risk Factor Surveillance System (BRFSS)
+
+Usage:
+
+```bash
+# Ingest ICPSR study
+socdata ingest-cmd icpsr:icpsr-general ~/Downloads/ICPSR_12345.zip --export icpsr.parquet
+```
+
+Notes:
+- ICPSR data requires registration at https://www.icpsr.umich.edu/
+- Auto-detects study number from filename (e.g., ICPSR_12345.zip → icpsr-12345)
+- Supports ANES, WVS, GSS, PSID, NLS, HRS, Add Health, CPS, and BRFSS datasets
+
+## Open Data Portals
+
+- Source: Various open data portals (data.gov, data.gouv.fr, data.gov.uk, etc.)
+- Status: implemented (generic CKAN API support)
+
+This adapter provides generic support for open data portals that use the CKAN API standard, including:
+- data.gov (US)
+- data.gouv.fr (France)
+- data.gov.uk (UK)
+- And other CKAN-based portals
+
+Usage:
+
+```python
+import socdata as sd
+
+# Load from open data portal (CKAN API)
+df = sd.load("opendata:package-name")
+
+# Or ingest from URL
+df = sd.ingest("opendata", file_path="https://data.gov/api/3/action/datastore_search?resource_id=...")
+```
+
+Notes:
+- Uses CKAN API standard (version 3)
+- Supports CSV, TSV, JSON, and Excel formats
+- May require API key for some portals
+- Can work with direct URLs to data files
