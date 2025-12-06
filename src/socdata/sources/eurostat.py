@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -14,6 +15,7 @@ except Exception:  # pragma: no cover - optional dependency
 
 from .base import BaseAdapter
 from ..core.config import get_config
+from ..core.exceptions import CacheError, DownloadError, ParserError
 from ..core.logging import get_logger
 from ..core.types import DatasetSummary
 
@@ -30,8 +32,18 @@ class EurostatAdapter(BaseAdapter):
             try:
                 with cache_file.open(encoding="utf-8") as f:
                     return json.load(f)
+            except (json.JSONDecodeError, UnicodeDecodeError) as e:
+                # Corrupted cache file - log and return None to regenerate
+                logger.warning(f"Failed to parse cached Eurostat dataset list (corrupted): {e}")
+                return None
+            except (OSError, IOError, PermissionError) as e:
+                # File system errors
+                logger.warning(f"Failed to read cached Eurostat dataset list (filesystem error): {e}")
+                return None
             except Exception as e:
-                logger.warning(f"Failed to read cached Eurostat dataset list: {e}")
+                # Unexpected errors
+                logger.error(f"Unexpected error reading cached Eurostat dataset list: {e}", exc_info=True)
+                return None
         
         return None
 
@@ -44,8 +56,12 @@ class EurostatAdapter(BaseAdapter):
             cache_file.parent.mkdir(parents=True, exist_ok=True)
             with cache_file.open("w", encoding="utf-8") as f:
                 json.dump(datasets, f, indent=2, ensure_ascii=False)
+        except (OSError, IOError, PermissionError) as e:
+            # File system errors - log but don't fail
+            logger.warning(f"Failed to cache Eurostat dataset list (filesystem error): {e}")
         except Exception as e:
-            logger.warning(f"Failed to cache Eurostat dataset list: {e}")
+            # Unexpected errors
+            logger.error(f"Unexpected error caching Eurostat dataset list: {e}", exc_info=True)
 
     def _fetch_datasets_from_api(self) -> Optional[List[Dict[str, str]]]:
         """Fetch dataset list from Eurostat REST API."""
@@ -68,16 +84,67 @@ class EurostatAdapter(BaseAdapter):
                 response = requests.get(sdmx_url, headers=headers, timeout=cfg.timeout_seconds)
                 response.raise_for_status()
                 
-                # Parse SDMX XML response (simplified - would need proper XML parsing)
-                # For now, return None to fall back to curated list
-                # A full implementation would parse the SDMX XML
-                logger.debug("Eurostat SDMX API response received, but full parsing not implemented")
-                return None
+                # Parse SDMX XML response
+                # Eurostat SDMX API returns XML with dataflow definitions
+                try:
+                    root = ET.fromstring(response.content)
+                    
+                    # SDMX namespace
+                    namespaces = {
+                        'structure': 'http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure',
+                        'common': 'http://www.sdmx.org/resources/sdmxml/schemas/v2_1/common',
+                    }
+                    
+                    # Extract dataflows (datasets)
+                    datasets = []
+                    # Try to find dataflows in the XML
+                    # The exact structure depends on Eurostat's SDMX implementation
+                    for dataflow in root.findall('.//structure:Dataflow', namespaces):
+                        # Extract ID and name
+                        dataflow_id = dataflow.get('id', '')
+                        if not dataflow_id:
+                            continue
+                        
+                        # Try to get name from various possible locations
+                        name_elem = dataflow.find('.//common:Name', namespaces)
+                        if name_elem is None:
+                            # Try alternative location
+                            name_elem = dataflow.find('.//structure:Name', namespaces)
+                        
+                        name = name_elem.text if name_elem is not None and name_elem.text else dataflow_id
+                        
+                        datasets.append({
+                            'code': dataflow_id,
+                            'title': name.strip() if name else dataflow_id
+                        })
+                    
+                    if datasets:
+                        logger.info(f"Successfully fetched {len(datasets)} datasets from Eurostat API")
+                        return datasets
+                    else:
+                        logger.debug("Eurostat SDMX API response received but no datasets found in expected format")
+                        return None
+                        
+                except ET.ParseError as e:
+                    # XML parsing error
+                    logger.warning(f"Failed to parse Eurostat SDMX XML response: {e}")
+                    return None
+                except KeyError as e:
+                    # Namespace or structure issue
+                    logger.debug(f"SDMX XML structure not as expected: {e}, using curated list")
+                    return None
+                    
             except requests.RequestException as e:
+                # Expected network/API errors - log and fallback
                 logger.debug(f"Eurostat API request failed: {e}, using curated list")
                 return None
+            except requests.Timeout as e:
+                # Timeout errors
+                logger.warning(f"Eurostat API request timed out: {e}, using curated list")
+                return None
         except Exception as e:
-            logger.warning(f"Failed to fetch datasets from Eurostat API: {e}")
+            # Unexpected errors
+            logger.error(f"Unexpected error fetching datasets from Eurostat API: {e}", exc_info=True)
             return None
 
     def list_datasets(self) -> List[DatasetSummary]:
@@ -110,8 +177,12 @@ class EurostatAdapter(BaseAdapter):
                     DatasetSummary(id=f"eurostat:{ds['code']}", source="eurostat", title=ds.get("title", ds["code"]))
                     for ds in cached
                 ]
+            except (KeyError, TypeError) as e:
+                # Invalid data structure in cache
+                logger.warning(f"Failed to parse cached dataset list (invalid structure): {e}")
             except Exception as e:
-                logger.warning(f"Failed to parse cached dataset list: {e}")
+                # Unexpected errors
+                logger.error(f"Unexpected error parsing cached dataset list: {e}", exc_info=True)
         
         # Try to fetch from API
         api_datasets = self._fetch_datasets_from_api()
@@ -123,8 +194,12 @@ class EurostatAdapter(BaseAdapter):
                     DatasetSummary(id=f"eurostat:{ds['code']}", source="eurostat", title=ds.get("title", ds["code"]))
                     for ds in api_datasets
                 ]
+            except (KeyError, TypeError) as e:
+                # Invalid data structure from API
+                logger.warning(f"Failed to parse API dataset list (invalid structure): {e}")
             except Exception as e:
-                logger.warning(f"Failed to parse API dataset list: {e}")
+                # Unexpected errors
+                logger.error(f"Unexpected error parsing API dataset list: {e}", exc_info=True)
         
         # Fallback to curated list
         datasets = [

@@ -53,3 +53,8 @@ class DownloadError(SocDataError):
 class StorageError(SocDataError):
     """Raised when there is a storage-related error."""
     pass
+
+
+class MetadataError(SocDataError):
+    """Raised when there is a metadata-related error (reading/writing)."""
+    pass
