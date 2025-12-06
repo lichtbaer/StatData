@@ -8,7 +8,6 @@ import re
 import pandas as pd
 
 from .base import BaseAdapter
-from ..core.parsers import read_table, read_table_with_meta
 from ..core.types import DatasetSummary
 from ..core.models import IngestionManifest
 from ..core.storage import get_dataset_dir
@@ -223,11 +222,7 @@ class ICPSRAdapter(BaseAdapter):
                 dataset_name = self._detect_icpsr_study(target_file)
         
         # Read with metadata when possible
-        try:
-            df, meta = read_table_with_meta(target_file)
-        except Exception:
-            df = read_table(target_file)
-            meta = {"variable_labels": {}, "value_labels": {}}
+        df, meta = self._read_table_with_meta_fallback(target_file)
         
         # Normalize
         df = self._normalize(df)
@@ -270,35 +265,19 @@ class ICPSRAdapter(BaseAdapter):
         manifest_path.write_text(manifest.to_json(), encoding="utf-8")
         
         # Save normalized parquet with Arrow metadata
-        try:
-            import json as _json
-            import pyarrow as pa
-            import pyarrow.parquet as pq
-            
-            table = pa.Table.from_pandas(df, preserve_index=False)
-            meta_bytes = table.schema.metadata or {}
-            aug = {
-                b"socdata.dataset_id": f"icpsr:{dataset_name}".encode("utf-8"),
-                b"socdata.source": b"icpsr",
-                b"socdata.adapter": b"icpsr",
-                b"socdata.manifest_path": str(manifest_path).encode("utf-8"),
-                b"socdata.variable_labels": _json.dumps(manifest.variable_labels).encode("utf-8"),
-                b"socdata.value_labels": _json.dumps(manifest.value_labels).encode("utf-8"),
-            }
-            new_schema = table.schema.with_metadata({**meta_bytes, **aug})
-            table = table.replace_schema_metadata(new_schema.metadata)
-            out_path = proc_dir / "data.parquet"
-            pq.write_table(table, out_path)
-        except Exception:
-            # Best-effort; ignore metadata write failures
-            pass
+        out_path = proc_dir / "data.parquet"
+        self._write_parquet_with_metadata(
+            df=df,
+            output_path=out_path,
+            dataset_id=f"icpsr:{dataset_name}",
+            source="icpsr",
+            adapter="icpsr",
+            manifest_path=manifest_path,
+            variable_labels=manifest.variable_labels,
+            value_labels=manifest.value_labels,
+        )
         
         # Index the dataset
-        try:
-            from ..core.registry import index_dataset_from_manifest
-            index_dataset_from_manifest(f"icpsr:{dataset_name}", str(manifest_path))
-        except Exception:
-            # Silently fail if indexing fails
-            pass
+        self._index_dataset_safe(f"icpsr:{dataset_name}", manifest_path)
         
         return df
