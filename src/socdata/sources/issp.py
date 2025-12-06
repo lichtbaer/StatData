@@ -227,7 +227,9 @@ class ISSPAdapter(BaseAdapter):
         parquet_path = cache_dir / "processed" / "data.parquet"
         
         if parquet_path.exists():
-            df = pd.read_parquet(parquet_path)
+            # Use optimized read with column selection if filters are provided
+            columns = list(filters.keys()) if filters else None
+            df = self._read_parquet_optimized(parquet_path, columns=columns)
             # Apply filters if provided
             if filters:
                 df = self._apply_filters(df, filters)

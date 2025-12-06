@@ -59,7 +59,13 @@ class SOEPAdapter(BaseAdapter):
         parquet_path = cache_dir / "processed" / "data.parquet"
         
         if parquet_path.exists():
-            return pd.read_parquet(parquet_path)
+            # Use optimized read - if filters are provided, we could optimize column loading
+            columns = list(filters.keys()) if filters else None
+            df = self._read_parquet_optimized(parquet_path, columns=columns)
+            # Apply filters if provided
+            if filters:
+                df = self._apply_filters(df, filters)
+            return df
         
         # If not cached, require manual ingestion via ingest()
         raise NotImplementedError(
@@ -106,6 +112,17 @@ class SOEPAdapter(BaseAdapter):
         
         candidates.sort(key=lambda t: (rank(t[1]), -t[0]))
         return candidates[0][1]
+
+    def _apply_filters(self, df: pd.DataFrame, filters: Dict[str, Any]) -> pd.DataFrame:
+        """Apply filters to DataFrame."""
+        result = df.copy()
+        for key, value in filters.items():
+            if key in result.columns:
+                if isinstance(value, list):
+                    result = result[result[key].isin(value)]
+                else:
+                    result = result[result[key] == value]
+        return result
 
     def _normalize(self, df: pd.DataFrame) -> pd.DataFrame:
         """Normalize column names and string values."""
